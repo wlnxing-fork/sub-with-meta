@@ -91,6 +91,25 @@ void hysteria2Construct(Proxy &node, const std::string &group, const std::string
     node.OBFSPassword = obfsPassword;
 }
 
+void TUICConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &add, const std::string &port, const std::string &uuid, const std::string &password, const std::string &ip, const std::string &heartbeatinterval, const std::string &disablesni, const std::string &reducertt, const std::string &requesttimeout, const std::string &udprelaymode, const std::string &congestioncontroller, const std::string &maxudprelaypacketsize, const std::string &fastopen, const std::string &maxopenstreams, const std::string &sni, const std::string &alpn, tribool udp, tribool tfo, tribool scv)
+{
+    commonConstruct(node, ProxyType::TUIC, group, remarks, add, port, udp, tfo, scv, tribool());
+    node.Password = password;
+    node.Uuid = uuid;
+    node.Ip = ip;
+    node.Heartbeatinterval = heartbeatinterval;
+    node.Disablesni = disablesni;
+    node.Reducertt = reducertt;
+    node.Requesttimeout = requesttimeout;
+    node.Udprelaymode = udprelaymode;
+    node.Congestioncontroller = congestioncontroller;
+    node.Maxudprelaypacketsize = maxudprelaypacketsize;
+    node.Fastopen = fastopen;
+    node.Maxopenstreams = maxopenstreams;
+    node.Sni = sni;
+    node.Alpn = alpn;
+}
+
 void vlessConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &add, const std::string &port, const std::string &type, const std::string &id, const std::string &aid, const std::string &net, const std::string &cipher, const std::string &flow, const std::string &mode, const std::string &path, const std::string &host, const std::string &edge, const std::string &tls,const std::string &pbk, const std::string &sid, const std::string &fp ,tribool udp, tribool tfo, tribool scv, tribool tls13)
 {
     commonConstruct(node, ProxyType::VLESS, group, remarks, add, port, udp, tfo, scv, tls13);
@@ -192,7 +211,7 @@ void explodeVless(std::string vless, Proxy &node)
 
 void explodeHysteria(std::string hysteria, Proxy &node)
 {   
-    printf("explodeHysteria\n");
+    //printf("explodeHysteria\n");
     if(regMatch(hysteria, "hysteria://(.*?)[:](.*)"))
     {
         explodeStdHysteria(hysteria, node);
@@ -209,6 +228,16 @@ void explodeHysteria2(std::string hysteria2, Proxy &node)
     if(regMatch(hysteria2, "hysteria2://(.*?)[:](.*)"))
     {
         explodeStdHysteria2(hysteria2, node);
+        return;
+    }
+}
+
+void explodeTUIC(std::string TUIC, Proxy &node)
+{
+    TUIC = regReplace(TUIC, "/\\?", "?", true, false);
+    if(regMatch(TUIC, "tuic://(.*?)[:](.*)"))
+    {
+        explodeStdTUIC(TUIC, node);
         return;
     }
 }
@@ -1061,6 +1090,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
     std::string user; //socks
     std::string auth,up,down,obfsParam,insecure;//hysteria
     std::string obfsPassword;//hysteria2
+    std::string uuid,ip,heartbeatinterval,disablesni,reducertt,requesttimeout,udprelaymode,congestioncontroller,maxudprelaypacketsize,fastopen,maxopenstreams;//TUIC
     tribool udp, tfo, scv;
     Node singleproxy;
     uint32_t index = nodes.size();
@@ -1356,6 +1386,26 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             scv = singleproxy["insecure"].IsDefined() ? singleproxy["insecure"].as<std::string>() == "1" : false;
             hysteria2Construct(node, group, ps, server, port, password, host, up, down, alpn, obfsParam, obfsPassword, udp, tfo, scv);
             break;
+        case "tuic"_hash:
+            group = TUIC_DEFAULT_GROUP;
+            singleproxy["uuid"] >>= uuid;
+            singleproxy["password"] >>= password;
+            singleproxy["ip"] >>= ip;
+            singleproxy["heartbeat-interval"] >>= heartbeatinterval;
+            singleproxy["disable-sni"] >>= disablesni;
+            singleproxy["reduce-rtt"] >>= reducertt;
+            singleproxy["request-timeout"] >>= requesttimeout;
+            singleproxy["udp-relay-mode"] >>= udprelaymode;
+            singleproxy["congestion-controller"] >>= congestioncontroller;
+            singleproxy["max-udp-relay-packet-size"] >>= maxudprelaypacketsize;
+            singleproxy["fast-open"] >>= fastopen;
+            singleproxy["max-open-streams"] >>= maxopenstreams;
+            singleproxy["sni"] >>= sni;
+            singleproxy["alpn"][0] >>= alpn;
+
+            scv = singleproxy["insecure"].IsDefined() ? singleproxy["insecure"].as<std::string>() == "1" : false;
+            TUICConstruct(node, group, ps, server, port, uuid, password, ip, heartbeatinterval, disablesni, reducertt, requesttimeout, udprelaymode, congestioncontroller, maxudprelaypacketsize, fastopen, maxopenstreams, sni, alpn, udp, tfo, scv);
+            break;
         default:
             continue;
         }
@@ -1495,6 +1545,79 @@ void explodeStdHysteria2(std::string hysteria2, Proxy &node)
         remarks = add + ":" + port;
 
     hysteria2Construct(node, HYSTERIA2_DEFAULT_GROUP, remarks, add, port, password, host, up, down, alpn, obfsParam, obfsPassword, tribool(), tribool(), scv);
+    return;
+}
+
+void explodeStdTUIC(std::string TUIC, Proxy &node)
+{
+    std::string add, port, password, remarks, alpn;
+    std::string uuid,ip,heartbeatinterval,disablesni,reducertt,requesttimeout,udprelaymode,congestioncontroller,maxudprelaypacketsize,fastopen,maxopenstreams,sni;//TUIC
+    
+    std::string addition;
+    tribool scv;
+    TUIC = TUIC.substr(7);
+    string_size pos;
+
+    pos = TUIC.rfind("#");
+    if(pos != TUIC.npos)
+    {
+        remarks = urlDecode(TUIC.substr(pos + 1));
+        TUIC.erase(pos);
+    }
+
+    pos = TUIC.rfind("?");
+    if(pos != TUIC.npos)
+    {
+        addition = TUIC.substr(pos + 1);
+        TUIC.erase(pos);
+    }
+
+    if(strFind(TUIC, "@"))
+    {
+        if(regGetMatch(TUIC, R"(^(.*?)@(.*)[:](\d+)$)", 4, 0, &password, &add, &port))
+            return;
+        pos = password.rfind(":");
+        if(pos != password.npos)
+        {
+            uuid = password.substr(pos + 1);
+            password.erase(pos);
+        }
+    }
+    else
+    {
+        password = getUrlArg(addition,"password");
+        if(password.empty())
+            return;
+
+        uuid = getUrlArg(addition,"uuid");
+        if(uuid.empty())
+            return;
+
+        if(!strFind(TUIC, ":"))
+            return;
+
+        if(regGetMatch(TUIC, R"(^(.*)[:](\d+)$)", 3, 0, &add, &port))
+            return;
+    }
+
+    scv = getUrlArg(addition, "insecure");
+    ip = getUrlArg(addition,"ip");
+    heartbeatinterval = getUrlArg(addition,"heartbeat_interval");
+    disablesni = getUrlArg(addition,"disable_sni");
+    reducertt = getUrlArg(addition,"reduce_rtt");
+    requesttimeout = getUrlArg(addition,"request_timeout");
+    udprelaymode = getUrlArg(addition,"udp_relay_mode");
+    congestioncontroller = getUrlArg(addition,"congestion_control");
+    maxudprelaypacketsize = getUrlArg(addition,"max_udp_relay_packet_size");
+    fastopen = getUrlArg(addition,"fast_open");
+    maxopenstreams = getUrlArg(addition,"max_open_streams");
+    sni = getUrlArg(addition,"sni");
+    alpn = getUrlArg(addition,"alpn");
+    
+    if(remarks.empty())
+        remarks = add + ":" + port;
+    
+    TUICConstruct(node, TUIC_DEFAULT_GROUP, remarks, add, port, uuid, password, ip, heartbeatinterval, disablesni, reducertt, requesttimeout, udprelaymode, congestioncontroller, maxudprelaypacketsize, fastopen, maxopenstreams, sni, alpn, tribool(), tribool(), scv);
     return;
 }
 
@@ -2431,6 +2554,8 @@ void explode(const std::string &link, Proxy &node)
         explodeHysteria(link, node);
     else if(strFind(link, "hysteria2://") || strFind(link, "hy2://"))
         explodeHysteria2(link, node);
+    else if(strFind(link, "tuic://"))
+        explodeTUIC(link, node);
     else if(strFind(link, "ss://"))
         explodeSS(link, node);
     else if(strFind(link, "socks://") || strFind(link, "https://t.me/socks") || strFind(link, "tg://socks"))
