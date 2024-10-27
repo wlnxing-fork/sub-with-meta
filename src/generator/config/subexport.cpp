@@ -107,7 +107,7 @@ bool applyMatcher(const std::string &rule, std::string &real_rule, const Proxy &
     std::string target, ret_real_rule;
     static const std::string groupid_regex = R"(^!!(?:GROUPID|INSERT)=([\d\-+!,]+)(?:!!(.*))?$)", group_regex = R"(^!!(?:GROUP)=(.+?)(?:!!(.*))?$)";
     static const std::string type_regex = R"(^!!(?:TYPE)=(.+?)(?:!!(.*))?$)", port_regex = R"(^!!(?:PORT)=(.+?)(?:!!(.*))?$)", server_regex = R"(^!!(?:SERVER)=(.+?)(?:!!(.*))?$)";
-    static const string_array types = {"", "SS", "SSR", "VMESS", "TROJAN", "SNELL", "HTTP", "HTTPS", "SOCKS5","VLESS","HYSTERIA","HYSTERIA2"};
+    static const string_array types = {"", "SS", "SSR", "VMESS", "TROJAN", "SNELL", "HTTP", "HTTPS", "SOCKS5","VLESS","HYSTERIA","HYSTERIA2","TUIC"};
     if (startsWith(rule, "!!GROUP=")) {
         regGetMatch(rule, group_regex, 3, 0, &target, &ret_real_rule);
         real_rule = ret_real_rule;
@@ -371,6 +371,37 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
                     singleproxy["obfs"] = x.OBFSParam;
                 if (!x.OBFSPassword.empty())
                     singleproxy["obfs-password"] = x.OBFSPassword;
+                break;
+            case ProxyType::TUIC:
+                singleproxy["type"] = "tuic";
+                singleproxy["uuid"] = x.Uuid;
+                singleproxy["password"] = x.Password;
+                if (!x.Ip.empty())
+                    singleproxy["ip"] = x.Ip;
+                if (!x.Heartbeatinterval.empty())
+                    singleproxy["heartbeat-interval"] = x.Heartbeatinterval;
+                if (!x.Disablesni.empty())
+                    singleproxy["disable-sni"] = x.Disablesni;
+                if (!x.Reducertt.empty())
+                    singleproxy["reduce-rtt"] = x.Reducertt;
+                if (!x.Requesttimeout.empty())
+                    singleproxy["request-timeout"] = x.Requesttimeout;
+                if (!x.Udprelaymode.empty())
+                    singleproxy["udp-relay-mode"] = x.Udprelaymode;
+                if (!x.Congestioncontroller.empty())
+                    singleproxy["congestion-controller"] = x.Congestioncontroller;
+                if (!x.Maxudprelaypacketsize.empty())
+                    singleproxy["max-udp-relay-packet-size"] = x.Maxudprelaypacketsize;
+                if (!x.Fastopen.empty())
+                    singleproxy["fast-open"] = x.Fastopen;
+                if (!x.Maxopenstreams.empty())
+                    singleproxy["max-open-streams"] = x.Maxopenstreams;
+                if (!x.Sni.empty())
+                    singleproxy["sni"] = x.Sni;
+                if (!x.Alpn.empty())
+                    singleproxy["alpn"].push_back(x.Alpn);
+                if (!scv.is_undef())
+                    singleproxy["skip-cert-verify"] = scv.get();
                 break;
             case ProxyType::VLESS:
                 singleproxy["type"] = "vless";
