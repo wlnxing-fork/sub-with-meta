@@ -16,6 +16,7 @@ enum ProxyType
     VLESS,
     Hysteria,
     Hysteria2,
+    TUIC,
     Trojan,
     Snell,
     HTTP,
@@ -39,6 +40,8 @@ inline String getProxyTypeName(int type)
         return "Hysteria";
     case ProxyType::Hysteria2:
         return "Hysteria2";
+    case ProxyType::TUIC:
+        return "TUIC";
     case ProxyType::Trojan:
         return "Trojan";
     case ProxyType::Snell:
@@ -112,6 +115,18 @@ struct Proxy
 
     String OBFSPassword;
 
+    String Uuid;
+    String Ip;
+    String Heartbeatinterval;
+    String Disablesni;
+    String Reducertt;
+    String Requesttimeout;
+    String Udprelaymode;
+    String Congestioncontroller;
+    String Maxudprelaypacketsize;
+    String Fastopen;
+    String Maxopenstreams;
+    String Sni;
 };
 
 #define SS_DEFAULT_GROUP "SSProvider"
@@ -120,6 +135,7 @@ struct Proxy
 #define XRAY_DEFAULT_GROUP "XRayProvider"
 #define HYSTERIA_DEFAULT_GROUP "HysteriaProvider"
 #define HYSTERIA2_DEFAULT_GROUP "Hysteria2Provider"
+#define TUIC_DEFAULT_GROUP "TUICProvider"
 #define SOCKS_DEFAULT_GROUP "SocksProvider"
 #define HTTP_DEFAULT_GROUP "HTTPProvider"
 #define TROJAN_DEFAULT_GROUP "TrojanProvider"
